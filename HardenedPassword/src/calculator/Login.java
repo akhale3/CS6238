@@ -3,18 +3,21 @@ package calculator;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Scanner;
 
 public class Login 
 {
 	static String QA[][] = new String[5][4];
+	static String userName;
+	static String pwd;
 
-	public static void main(String[] args) throws IOException, InvalidKeyException, NoSuchAlgorithmException 
+	public static void main(String[] args) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException 
 	{
 		int x, y, qa1, qa2;
 		int i;
-		String userName = new String();
-		String pwd = new String();
+		userName = new String();
+		pwd = new String();
 		Scanner in = new Scanner(System.in);
 		{
 		QA[0][3] = "How far away from the college are you (in miles)?";

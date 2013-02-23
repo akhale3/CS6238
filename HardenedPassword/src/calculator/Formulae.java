@@ -6,11 +6,14 @@ package calculator;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Random;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 /**
  * @author Anish
@@ -80,10 +83,13 @@ public class Formulae {
 	}
 	
 	void calcAlphaBeta() throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
+, InvalidKeySpecException
 	{
 		int i;
 		g = Mac.getInstance("HmacSHA1");
-		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
+		PBEKeySpec keySpec = new PBEKeySpec(Login.pwd.toCharArray());
+		r = SecretKeyFactory.getInstance("HmacSHA1").generateSecret(keySpec);
+//		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
 		g.init(r);
 		for(i = 0; i < m; i++)
 		{
@@ -107,7 +113,7 @@ public class Formulae {
 			}
 	}
 	
-	void test() throws InvalidKeyException, NoSuchAlgorithmException
+	void test() throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException
 	{
 		int i, j;
 		
