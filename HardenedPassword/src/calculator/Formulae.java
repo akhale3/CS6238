@@ -4,7 +4,6 @@
 package calculator;
 
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
@@ -30,10 +29,12 @@ public class Formulae {
 	int b[];			//Feature Descriptor
 	int h;				//Size of History File
 	int m;				//Number of questions
-	double instTab[][];	//Instruction Table
-	double alpha[];
-	double beta[];
-	double y[][];		//Result of polynomial evaluation
+	BigInteger instTab[][];	//Instruction Table
+	BigInteger alpha[];
+	BigInteger beta[];
+	BigInteger y[][];	//Result of polynomial evaluation
+	Mac g;
+	SecretKey r;
 	
 	Formulae()
 	{
@@ -46,10 +47,10 @@ public class Formulae {
 		t = new double[m];
 		phi = new double[m];
 		b = new int[m];
-		instTab = new double[m][2];
-		alpha = new double[m];
-		beta = new double[m];
-		y = new double[m][2];
+		instTab = new BigInteger[m][2];
+		alpha = new BigInteger[m];
+		beta = new BigInteger[m];
+		y = new BigInteger[m][2];
 	}
 	
 	void genPrime()	//Returns a 160 bit random prime number
@@ -81,13 +82,14 @@ public class Formulae {
 	void calcAlphaBeta() throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
 	{
 		int i;
-		Mac g = Mac.getInstance("SHA256");
-		SecretKey r = KeyGenerator.getInstance("SHA256").generateKey();
+		g = Mac.getInstance("HmacSHA1");
+		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
 		g.init(r);
 		for(i = 0; i < m; i++)
 		{
-			alpha[i] = y[i][0] + ByteBuffer.wrap(g.doFinal(BigInteger.valueOf(2*i).toByteArray())).getDouble();
-			beta[i] = y[i][1] + ByteBuffer.wrap(g.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).getDouble();
+			y[i][0] = y[i][1] = BigInteger.valueOf(0);
+			alpha[i] = y[i][0].add(new BigInteger(g.doFinal(BigInteger.valueOf(2*i).toByteArray())).mod(q));
+			beta[i] = y[i][1].add(new BigInteger(g.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).mod(q));
 		}
 	}
 	
@@ -105,6 +107,27 @@ public class Formulae {
 			}
 	}
 	
-	
+	void test() throws InvalidKeyException, NoSuchAlgorithmException
+	{
+		int i, j;
+		
+		genPrime();
+		System.out.println("q = " + q);
+		
+		setHpwd();
+		System.out.println("hpwd = " + hpwd);
+		
+		calcAlphaBeta();
+		System.out.println("g = " + g);
+		System.out.println("r = " + r);
+		
+		setInstTab();
+		for(i = 0; i < m; i++)
+		{
+			for(j = 0; j < 2; j++)
+				System.out.print(instTab[i][j] + " ");
+			System.out.println();
+		}
+	}
 	
 }
