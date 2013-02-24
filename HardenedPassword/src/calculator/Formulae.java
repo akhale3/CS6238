@@ -35,8 +35,11 @@ public class Formulae {
 	BigInteger alpha[];
 	BigInteger beta[];
 	BigInteger x[][], y[][];	//Result of polynomial evaluation
+	BigInteger X[], Y[];		//Store x and y values during login
+	BigInteger lam[];		//Langrange coefficient for interpolation
+	BigInteger hpwd1;	//Login generated hardened password
 	Mac g1, g2;
-	SecretKey r, rpwd;
+	SecretKey r;
 	int a[];			//Random coefficients for calculating polynomial
 	
 	Formulae() throws NoSuchAlgorithmException
@@ -55,8 +58,12 @@ public class Formulae {
 		beta = new BigInteger[m];
 		x = new BigInteger[m][2];
 		y = new BigInteger[m][2];
+		X = new BigInteger[m];
+		Y = new BigInteger[m];
+		lam = new BigInteger[m];
 		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
 		a = new int[m];
+		hpwd1 = BigInteger.valueOf(0);
 	}
 	
 	void genPrime()	//Returns a 160 bit random prime number
@@ -84,6 +91,7 @@ public class Formulae {
 , InvalidKeyException
 	{
 		int i, j;
+		SecretKey rpwd;
 		g1 = Mac.getInstance("HmacSHA1");
 		g2 = Mac.getInstance("HmacSHA1");
 		rpwd = new SecretKeySpec(Login.pwd.getBytes(), "HmacSHA1");
@@ -133,6 +141,55 @@ public class Formulae {
 			}
 	}
 	
+	//XY coordinates generation
+	void xyCalc(String s[][]) throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
+	, InvalidKeySpecException
+	{
+		int i;
+		SecretKey rpwd1;
+		
+		g1 = Mac.getInstance("HmacSHA1");
+		g2 = Mac.getInstance("HmacSHA1");
+		rpwd1 = new SecretKeySpec(Login.pwd.getBytes(), "HmacSHA1");
+		g1.init(r);
+		g2.init(rpwd1);
+
+		for(i = 0; i < m; i++)
+		{
+			if(s[i][0] == "A")
+			{
+				X[i] = new BigInteger(g1.doFinal(BigInteger.valueOf(2*i).toByteArray())) ;
+				Y[i] = alpha[i].subtract(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i).toByteArray())).mod(q));
+			}
+			else
+				if(s[i][0] == "B" || s[i][0] == "AB")
+				{
+					X[i] = new BigInteger(g1.doFinal(BigInteger.valueOf(2*i+1).toByteArray())) ;
+					Y[i] = beta[i].subtract(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).mod(q));
+				}
+		}
+	}
+
+	//Generating the password at the decryption side
+	void generateHPWD()
+	{
+		int i, j;
+		for(i = 0; i < m; i++)
+		{
+			lam[i] = BigInteger.valueOf(1);
+			for(j = 0; j < m; j++)
+			{
+				if(j != i)
+					lam[i] = lam[i].multiply(X[j].divide(X[j].subtract(X[i])));
+			}
+		}
+
+		for(i = 0; i < m; i++)
+		{
+			hpwd1 = hpwd1.add(Y[i].multiply(lam[i].mod(q)));
+		}
+	}
+	
 	void test() throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException
 	{
 		int i, j;
@@ -154,6 +211,9 @@ public class Formulae {
 				System.out.print(instTab[i][j] + " ");
 			System.out.println();
 		}
+		
+		//generateHPWD();
+		System.out.println("hpwd1 = " + hpwd1);
 	}
 	
 }
