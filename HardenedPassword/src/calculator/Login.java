@@ -20,11 +20,11 @@ public class Login
 		pwd = new String();
 		Scanner in = new Scanner(System.in);
 		{
-		QA[0][3] = "How far away from the college are you (in miles)?";
-		QA[1][3] = "How many Jelly Beans can fit in a 100 cc jar?";
-		QA[2][3] = "How many hours do you wish to be logged in?";
-		QA[3][3] = "What is your weight (in pounds)?";
-		QA[4][3] = "How deep do you think is the Pacific Ocean (in miles)?";
+		QA[0][3] = "How far away from the college are you (in miles)?";QA[0][2] = "13";
+		QA[1][3] = "How many Jelly Beans can fit in a 1000 cc jar?";QA[1][2] = "240";
+		QA[2][3] = "How many hours do you wish to be logged in?";QA[2][2] = "5";
+		QA[3][3] = "What is your weight (in pounds)?";QA[3][2] = "220";
+		QA[4][3] = "How deep do you think is the Pacific Ocean (in miles)?";QA[4][2] = "7";
 		}
 		
 		Formulae f = new Formulae();
@@ -46,7 +46,6 @@ public class Login
 			{
 				System.out.println(QA[i][3]);
 				QA[i][1] = in.next();
-				QA[i][2] = QA[i][1];
 				qa1 = Integer.valueOf(QA[i][1]);
 				qa2 = Integer.valueOf(QA[i][2]);
 				if(qa1 > qa2)

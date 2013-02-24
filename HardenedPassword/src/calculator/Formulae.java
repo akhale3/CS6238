@@ -34,7 +34,10 @@ public class Formulae {
 	BigInteger alpha[];
 	BigInteger beta[];
 	BigInteger y[][];	//Result of polynomial evaluation
-	Mac g;
+	BigInteger X[];
+	BigInteger Y[];
+	BigInteger lam[];
+	Mac g;Mac p;
 	SecretKey r;
 	
 	Formulae()
@@ -52,6 +55,10 @@ public class Formulae {
 		alpha = new BigInteger[m];
 		beta = new BigInteger[m];
 		y = new BigInteger[m][2];
+		X = new BigInteger[m];
+		Y = new BigInteger[m];
+		lam = new BigInteger[m];
+		for(int i=0;i<m;i++){lam[i] = BigInteger.valueOf(1);}
 	}
 	
 	void genPrime()	//Returns a 160 bit random prime number
@@ -110,6 +117,50 @@ public class Formulae {
 				else
 					instTab[j][i] = beta[j];
 			}
+	}
+	
+	//XY coordinate generation
+	void XYcalc(String s[][]) throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
+	, InvalidKeySpecException
+	{
+		int i;
+		p = Mac.getInstance("HmacSHA1");
+		p.init(r);
+		
+		g = Mac.getInstance("HmacSHA1");
+		g.init(r);
+		
+		for(i=0; i<m; i++)
+		{
+			if(s[i][0] == "A")
+			{
+				X[i] = new BigInteger(p.doFinal(BigInteger.valueOf(2*i).toByteArray())) ;
+				Y[i] = alpha[i].subtract(new BigInteger(g.doFinal(BigInteger.valueOf(2*i).toByteArray())).mod(q));
+			}
+			else if(s[i][0] == "B")
+			{
+				X[i] = new BigInteger(p.doFinal(BigInteger.valueOf(2*i+1).toByteArray())) ;
+				Y[i] = alpha[i].subtract(new BigInteger(g.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).mod(q));
+			}
+			else if(s[i][0] == "AB"){}
+		}
+	}
+	
+	//generating the password at the decryption side
+	void generateHPWD()
+	{
+		int i,j;
+		hpwd = BigInteger.valueOf(0);
+		for(i=0;i<m;i++)
+			for(j=0;j<m;j++)
+			{
+				lam[i] = lam[i].multiply(X[j].divide(X[j].subtract(X[i])));
+			}
+		
+		for(i=0;i<m;i++)
+		{
+			hpwd = hpwd.add(Y[i].multiply(lam[i].mod(q)));
+		}
 	}
 	
 	void test() throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException
