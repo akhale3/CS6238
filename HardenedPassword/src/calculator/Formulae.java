@@ -9,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Random;
 
+import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -33,11 +34,12 @@ public class Formulae {
 	BigInteger instTab[][];	//Instruction Table
 	BigInteger alpha[];
 	BigInteger beta[];
-	BigInteger y[][];	//Result of polynomial evaluation
-	Mac g;
-	SecretKey r;
+	BigInteger x[][], y[][];	//Result of polynomial evaluation
+	Mac g1, g2;
+	SecretKey r, rpwd;
+	int a[];			//Random coefficients for calculating polynomial
 	
-	Formulae()
+	Formulae() throws NoSuchAlgorithmException
 	{
 		rand = new Random();
 		hpwd = BigInteger.valueOf(-1);
@@ -51,7 +53,10 @@ public class Formulae {
 		instTab = new BigInteger[m][2];
 		alpha = new BigInteger[m];
 		beta = new BigInteger[m];
+		x = new BigInteger[m][2];
 		y = new BigInteger[m][2];
+		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
+		a = new int[m];
 	}
 	
 	void genPrime()	//Returns a 160 bit random prime number
@@ -75,26 +80,42 @@ public class Formulae {
 //		int k;
 	}
 	
-	void calcPolynomial()	//Calculate the value of y0 and y1
+	void calcPolynomial() throws NoSuchAlgorithmException	//Calculate the value of y0 and y1
+, InvalidKeyException
 	{
+		int i, j;
+		g1 = Mac.getInstance("HmacSHA1");
+		g2 = Mac.getInstance("HmacSHA1");
+		rpwd = new SecretKeySpec(Login.pwd.getBytes(), "HmacSHA1");
+		g1.init(r);
+		g2.init(rpwd);
+		y[0][0] = y[0][1] = hpwd;
+		for(i = 1; i < m; i++)
+		{
+			x[i][0] = new BigInteger(g1.doFinal(BigInteger.valueOf(2*i).toByteArray())); 
+			x[i][1] = new BigInteger(g1.doFinal(BigInteger.valueOf(2*i+1).toByteArray()));
+			y[i][0] = y[i][1] = hpwd;
+			a[i] = rand.nextInt();
+		}
 		
-	}
-	
-	void calcAlphaBeta() throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
-, InvalidKeySpecException
-	{
-		int i;
-		g = Mac.getInstance("HmacSHA1");
-		r = new SecretKeySpec(Login.pwd.getBytes(), "HmacSHA1");
-//		PBEKeySpec keySpec = new PBEKeySpec(Login.pwd.toCharArray());
-//		r = SecretKeyFactory.getInstance("HmacSHA1").generateSecret(keySpec);
-//		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
-		g.init(r);
 		for(i = 0; i < m; i++)
 		{
-			y[i][0] = y[i][1] = BigInteger.valueOf(0);
-			alpha[i] = y[i][0].add(new BigInteger(g.doFinal(BigInteger.valueOf(2*i).toByteArray())).mod(q));
-			beta[i] = y[i][1].add(new BigInteger(g.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).mod(q));
+			for(j = 1; j < m; j++)
+			{
+				y[i][0] = y[i][0].add(BigInteger.valueOf(a[j]).multiply(x[j][0].pow(j)));
+				y[i][1] = y[i][1].add(BigInteger.valueOf(a[j]).multiply(x[j][1].pow(j)));
+			}
+		}
+	}
+	
+	void calcAlphaBeta() 	//Calculates the value of Alpha and Beta
+	{
+		int i;
+		for(i = 0; i < m; i++)
+		{
+//			y[i][0] = y[i][1] = BigInteger.valueOf(0);
+			alpha[i] = y[i][0].add(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i).toByteArray())).mod(q));
+			beta[i] = y[i][1].add(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).mod(q));
 		}
 	}
 	
@@ -116,14 +137,14 @@ public class Formulae {
 	{
 		int i, j;
 		
-		genPrime();
+		//genPrime();
 		System.out.println("q = " + q);
 		
-		setHpwd();
+		//setHpwd();
 		System.out.println("hpwd = " + hpwd);
 		
 		calcAlphaBeta();
-		System.out.println("g = " + g);
+		System.out.println("g = " + g1 + " " + g2);
 		System.out.println("r = " + r);
 		
 		setInstTab();
