@@ -138,7 +138,8 @@ public class Login
 					}
 				}
 				writer.close();
-				//set history file
+				
+				f.createHfile(QA);	//setting up history file//set history file
 				//encrypt
 				f.test();
 			}

@@ -30,7 +30,7 @@ public class Formulae {
 	double t[];			//Threshold
 	double phi[];		//Distinguishing Feature
 	int b[];			//Feature Descriptor
-	int h;				//Size of History File
+	int z;				//Size of History File
 	int m;				//Number of questions
 	BigInteger instTab[][];	//Instruction Table
 	BigInteger alpha[];
@@ -46,13 +46,14 @@ public class Formulae {
 	File prime;
 	File instTable;
 	File history;
+	int Hfile[][];
 	
 	Formulae()
 	{
 		rand = new Random();
 		hpwd = BigInteger.valueOf(-1);
 		m = 5;
-//		h = ;
+		z = 0;
 		mean = new double[m];
 		sd = new double[m];
 		t = new double[m];
@@ -72,6 +73,10 @@ public class Formulae {
 		prime = new File("./src/prime");
 		instTable = new File("./src/instTable");
 		history = new File("./src/history");
+		Hfile = new int[10][m];
+		for(int i=0;i<10;i++)
+			for(int j=0;j<m;j++)
+			{Hfile[i][j] = 0;}
 	}
 	
 	void genRandom() throws NoSuchAlgorithmException
@@ -154,6 +159,32 @@ public class Formulae {
 			}
 	}
 	
+	void createHfile(String QA[][])
+	{
+		if(z<=4)
+		{
+		for(int i=0;i<m;i++)
+			{
+				Hfile[z][i] = Integer.parseInt(QA[i][1]);
+				z++;
+			}
+			try
+			{
+				FileWriter fstream = new FileWriter(history);
+				BufferedWriter out = new BufferedWriter(fstream);
+				for(int i=0;i<m;i++)
+				{
+					out.write(Hfile[z][i]);
+				}
+				out.close();
+			}catch (Exception e){System.err.println("Error: " + e.getMessage());}
+		}
+		else if(z>4)
+		{
+			z=0;
+			createHfile(QA);
+		}
+	}
 	//XY coordinates generation
 	void xyCalc(String s[][]) throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
 	, InvalidKeySpecException
