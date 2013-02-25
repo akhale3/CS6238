@@ -17,7 +17,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Scanner;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
 public class Login 
 {
