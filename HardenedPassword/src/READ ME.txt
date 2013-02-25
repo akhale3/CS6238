@@ -1,0 +1,19 @@
+Our program uses java version 1.7
+
+compilation: javac Login.java
+Execution:  java Login
+
+Our program uses the standard library functions...and the class formulae which contains all the formula to be used.
+
+
+
+
+Our program when run, asks the user to either create the account or log in to an account.
+
+According to the user choice, it asks the user to enter username and password and security questions.
+At the creation of the account, the user is prompted for username, password and securtiy questions. Using the formula class , a large prime number is generated from which a encryption password is generated. A polynomial is generated and an instruction table is generated depending on the user answers. the instruction table contains the alpha and beta values which are based on the password. A history file is created into which all the feature vectors i.e., security question and answers are stored. This file is encrypted using the encryption file that us generated
+
+
+
+
+If the user choose to login with his credentials, the user enters the username and password and answers security questions. Depending on his answers, choice of alpha or beta value to be considered from the instruction table is choosen. Using the instruction table, the XY coordinates of the polynomial are generated. Using these values the encryption password is generated and the history file is decrypted. The decrypted history file is then populated with or overwritten with the new feature vector values and is encrypted using a new encryption password generated and a new ploynomial and instruction table is generated.
