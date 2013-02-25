@@ -67,7 +67,7 @@ public class Login
 	
 	public static void main(String[] args) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, ClassNotFoundException 
 	{
-		int x;
+		int x, i, j;
 		String choice;
 		userName = new String();
 		pwd = new String();
@@ -108,6 +108,8 @@ public class Login
 					f.instTable.createNewFile();
 				if(!f.history.exists())
 					f.history.createNewFile();
+				if(!f.prime.exists())
+					f.prime.createNewFile();
 				
 				f.genRandom();
 				OutputStream os = new FileOutputStream(f.randVal);
@@ -115,13 +117,28 @@ public class Login
 				oos.writeObject(f.r);
 				os.close();
 				f.genPrime();
+				os = new FileOutputStream(f.prime);
+				oos = new ObjectOutputStream(os);
+				oos.writeObject(f.q);
+				os.close();
 				f.setHpwd();
 				f.calcPolynomial();
+				f.calcAlphaBeta();
 				f.setInstTab();
-				os = new FileOutputStream(f.instTable);
-				oos = new ObjectOutputStream(os);
-				oos.writeObject(f.instTab);
-				os.close();
+//				os = new FileOutputStream(f.instTable);
+//				oos = new ObjectOutputStream(os);
+//				oos.writeObject(f.instTab);
+//				os.close();
+				writer = new BufferedWriter(new FileWriter(f.instTable));
+				for(i = 0; i < f.m; i++)
+				{
+					for(j = 0; j < 2; j++)
+					{
+						writer.write(f.instTab[i][j].toString());
+						writer.newLine();
+					}
+				}
+				writer.close();
 				//set history file
 				//encrypt
 				f.test();
@@ -143,14 +160,32 @@ public class Login
 //						e.printStackTrace();
 //					}
 //					f.r = new SecretKeySpec(reader.readLine().getBytes(), 0, reader.readLine().getBytes().length, "HmacSHA1");
-					ois = new ObjectInputStream(new FileInputStream(f.instTable));
-					f.instTab = (BigInteger[][]) ois.readObject();
+					
+					ois = new ObjectInputStream(new FileInputStream(f.prime));
+					f.q = (BigInteger) ois.readObject();
 					ois.close();
+					System.out.println("q = " + f.q);
+					in = new Scanner(f.instTable);
+					while(in.hasNextLine())
+					for(i = 0; i < f.m; i++)
+					{
+						for(j = 0; j < 2; j++)
+						{
+							f.instTab[i][j] = new BigInteger(in.nextLine());
+						}
+					}
+					for(i = 0; i < f.m; i++)
+					{
+						for(j = 0; j < 2; j++)
+						{
+							System.out.println(f.instTab[i][j]);
+						}
+					}
 					f.xyCalc(QA);		// XY calculation from instruction table using the Alpha or Beta values 
 										//we get from QA
 					f.generateHPWD();		// Hpwd calculation using the XY values
 							// decrypt and display and update
-					f.test();
+//					f.test();
 				}
 //			System.out.println("Do you wish to continue (Y/N)?");
 //			choice = in.next();

@@ -43,6 +43,7 @@ public class Formulae {
 	SecretKey r;
 	int a[];			//Random coefficients for calculating polynomial
 	File randVal;
+	File prime;
 	File instTable;
 	File history;
 	
@@ -68,6 +69,7 @@ public class Formulae {
 		a = new int[m];
 		hpwd1 = BigInteger.valueOf(0);
 		randVal = new File("./src/r");
+		prime = new File("./src/prime");
 		instTable = new File("./src/instTable");
 		history = new File("./src/history");
 	}
@@ -170,13 +172,13 @@ public class Formulae {
 			if(s[i][0] == "A")
 			{
 				X[i] = new BigInteger(g1.doFinal(BigInteger.valueOf(2*i).toByteArray())) ;
-				Y[i] = alpha[i].subtract(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i).toByteArray())).mod(q));
+				Y[i] = instTab[i][0].subtract(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i).toByteArray())).mod(q));
 			}
 			else
 				if(s[i][0] == "B" || s[i][0] == "AB")
 				{
 					X[i] = new BigInteger(g1.doFinal(BigInteger.valueOf(2*i+1).toByteArray())) ;
-					Y[i] = beta[i].subtract(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).mod(q));
+					Y[i] = instTab[i][1].subtract(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).mod(q));
 				}
 		}
 	}
