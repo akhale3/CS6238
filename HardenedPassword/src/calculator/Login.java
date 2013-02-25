@@ -36,6 +36,7 @@ public class Login
 		int i;
 		for (i = 0; i < 5; i++)
 		{
+			QA[i][1] = String.valueOf(0);
 			System.out.println(QA[i][3]);
 			System.out.println("Do you wish to answer this question?\n1. YES\t2. NO");
 			y = in.nextInt();
@@ -64,7 +65,7 @@ public class Login
 		}
 	}
 	
-	public static void main(String[] args) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, ClassNotFoundException 
+	public static void main(String[] args) throws Exception 
 	{
 		int x, i, j;
 		String choice;
@@ -141,7 +142,7 @@ public class Login
 				
 				f.createHfile(QA);	//setting up history file//set history file
 				//encrypt
-				f.test();
+//				f.test();
 			}
 			else
 				if(x == 2)
@@ -184,7 +185,38 @@ public class Login
 					f.xyCalc(QA);		// XY calculation from instruction table using the Alpha or Beta values 
 										//we get from QA
 					f.generateHPWD();		// Hpwd calculation using the XY values
-							// decrypt and display and update
+					f.decrypt(f.hpwd1);		// decrypt and display and update
+					f.genRandom();
+					OutputStream os = new FileOutputStream(f.randVal);
+					ObjectOutputStream oos = new ObjectOutputStream(os);
+					oos.writeObject(f.r);
+					os.close();
+					f.genPrime();
+					os = new FileOutputStream(f.prime);
+					oos = new ObjectOutputStream(os);
+					oos.writeObject(f.q);
+					os.close();
+					f.setHpwd();
+					f.calcPolynomial();
+					f.calcAlphaBeta();
+					f.setInstTab();
+//					os = new FileOutputStream(f.instTable);
+//					oos = new ObjectOutputStream(os);
+//					oos.writeObject(f.instTab);
+//					os.close();
+					writer = new BufferedWriter(new FileWriter(f.instTable));
+					for(i = 0; i < f.m; i++)
+					{
+						for(j = 0; j < 2; j++)
+						{
+							writer.write(f.instTab[i][j].toString());
+							writer.newLine();
+						}
+					}
+					writer.close();
+					
+					f.createHfile(QA);	//setting up history file//set history file
+					//encrypt
 //					f.test();
 				}
 //			System.out.println("Do you wish to continue (Y/N)?");

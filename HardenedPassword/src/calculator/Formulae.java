@@ -8,11 +8,18 @@ import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
 import java.util.Random;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
@@ -46,7 +53,7 @@ public class Formulae {
 	File prime;
 	File instTable;
 	File history;
-	int Hfile[][];
+	BigInteger Hfile[][];
 	
 	Formulae()
 	{
@@ -73,10 +80,10 @@ public class Formulae {
 		prime = new File("./src/prime");
 		instTable = new File("./src/instTable");
 		history = new File("./src/history");
-		Hfile = new int[10][m];
+		Hfile = new BigInteger[10][m];
 		for(int i=0;i<10;i++)
 			for(int j=0;j<m;j++)
-			{Hfile[i][j] = 0;}
+			{Hfile[i][j].valueOf(0);}
 	}
 	
 	void genRandom() throws NoSuchAlgorithmException
@@ -159,25 +166,36 @@ public class Formulae {
 			}
 	}
 	
-	void createHfile(String QA[][])
+	void createHfile(String QA[][]) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException
 	{
+		BufferedWriter writer = new BufferedWriter(new FileWriter(history));
+		SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+		KeySpec spec = new PBEKeySpec(hpwd.toString().toCharArray());
+		SecretKey tmp = factory.generateSecret(spec);
+		SecretKey secret = new SecretKeySpec(tmp.getEncoded(), "AES");
+		/* Encrypt the message. */
+		Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+		cipher.init(Cipher.ENCRYPT_MODE, secret);
 		if(z<=4)
 		{
 		for(int i=0;i<m;i++)
 			{
-				Hfile[z][i] = Integer.parseInt(QA[i][1]);
+//				Hfile[z][i] = Integer.parseInt(QA[i][1]);
+				Hfile[z][i] = new BigInteger(cipher.doFinal(QA[i][1].getBytes()));
 				z++;
 			}
 			try
 			{
-				FileWriter fstream = new FileWriter(history);
-				BufferedWriter out = new BufferedWriter(fstream);
 				for(int i=0;i<m;i++)
 				{
-					out.write(Hfile[z][i]);
+					writer.write(Hfile[z][i].toString());
 				}
-				out.close();
+	
+				writer.close();
 			}catch (Exception e){System.err.println("Error: " + e.getMessage());}
+			
+			
+			
 		}
 		else if(z>4)
 		{
@@ -185,6 +203,22 @@ public class Formulae {
 			createHfile(QA);
 		}
 	}
+	
+	void decrypt(BigInteger hpwd) throws Exception
+	{
+	FileWriter fstream = new FileWriter(history);
+	SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+	KeySpec spec = new PBEKeySpec(hpwd.toString().toCharArray());
+	SecretKey tmp = factory.generateSecret(spec);
+	SecretKey secret = new SecretKeySpec(tmp.getEncoded(), "AES");
+	/* Decrypt the message. */
+	Cipher cipher = Cipher.getInstance("AES/EBC/PKCS5Padding");
+	cipher.init(Cipher.DECRYPT_MODE, secret);
+	String plaintext = new String(cipher.doFinal(fstream.toString().getBytes()), "UTF-8");
+	System.out.println(plaintext);
+	fstream.close();
+	}
+	
 	//XY coordinates generation
 	void xyCalc(String s[][]) throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
 	, InvalidKeySpecException
