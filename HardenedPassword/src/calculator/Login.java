@@ -1,10 +1,23 @@
 package calculator;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Scanner;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Login 
 {
@@ -52,12 +65,16 @@ public class Login
 		}
 	}
 	
-	public static void main(String[] args) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException 
+	public static void main(String[] args) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, ClassNotFoundException 
 	{
 		int x;
 		String choice;
 		userName = new String();
 		pwd = new String();
+		FileReader fr;
+		FileWriter fw;
+		BufferedReader reader = null;
+		BufferedWriter writer = null;
 		Scanner in = new Scanner(System.in);
 		{
 		QA[0][3] = "How far away from the college are you (in miles)?";	QA[0][2] = "13";
@@ -69,8 +86,8 @@ public class Login
 		
 		Formulae f = new Formulae();
 		
-		do
-		{
+//		do
+//		{
 			System.out.println("Menu:");
 			System.out.println("1. Create account");
 			System.out.println("2. Login");
@@ -84,10 +101,27 @@ public class Login
 			if(x==1)
 			{
 				securityQA(in);
+				
+				if(!f.randVal.exists())
+					f.randVal.createNewFile();
+				if(!f.instTable.exists())
+					f.instTable.createNewFile();
+				if(!f.history.exists())
+					f.history.createNewFile();
+				
+				f.genRandom();
+				OutputStream os = new FileOutputStream(f.randVal);
+				ObjectOutputStream oos = new ObjectOutputStream(os);
+				oos.writeObject(f.r);
+				os.close();
 				f.genPrime();
 				f.setHpwd();
 				f.calcPolynomial();
 				f.setInstTab();
+				os = new FileOutputStream(f.instTable);
+				oos = new ObjectOutputStream(os);
+				oos.writeObject(f.instTab);
+				os.close();
 				//set history file
 				//encrypt
 				f.test();
@@ -96,16 +130,32 @@ public class Login
 				if(x == 2)
 				{
 					securityQA(in);
+					ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f.randVal));
+					f.r = (SecretKey) ois.readObject();
+					ois.close();
+//					try
+//					{
+//						fr = new FileReader(f.randVal);
+//						reader = new BufferedReader(fr);
+//					}
+//					catch(Exception e)
+//					{
+//						e.printStackTrace();
+//					}
+//					f.r = new SecretKeySpec(reader.readLine().getBytes(), 0, reader.readLine().getBytes().length, "HmacSHA1");
+					ois = new ObjectInputStream(new FileInputStream(f.instTable));
+					f.instTab = (BigInteger[][]) ois.readObject();
+					ois.close();
 					f.xyCalc(QA);		// XY calculation from instruction table using the Alpha or Beta values 
 										//we get from QA
 					f.generateHPWD();		// Hpwd calculation using the XY values
 							// decrypt and display and update
 					f.test();
 				}
-			System.out.println("Do you wish to continue (Y/N)?");
-			choice = in.next();
-		}
-		while(choice.compareToIgnoreCase("y") == 0);
+//			System.out.println("Do you wish to continue (Y/N)?");
+//			choice = in.next();
+//		}
+//		while(choice.compareToIgnoreCase("y") == 0);
 		in.close();
 	}
 	

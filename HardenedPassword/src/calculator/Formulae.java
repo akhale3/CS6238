@@ -3,6 +3,7 @@
  */
 package calculator;
 
+import java.io.*;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -41,8 +42,11 @@ public class Formulae {
 	Mac g1, g2;
 	SecretKey r;
 	int a[];			//Random coefficients for calculating polynomial
+	File randVal;
+	File instTable;
+	File history;
 	
-	Formulae() throws NoSuchAlgorithmException
+	Formulae()
 	{
 		rand = new Random();
 		hpwd = BigInteger.valueOf(-1);
@@ -61,9 +65,16 @@ public class Formulae {
 		X = new BigInteger[m];
 		Y = new BigInteger[m];
 		lam = new BigInteger[m];
-		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
 		a = new int[m];
 		hpwd1 = BigInteger.valueOf(0);
+		randVal = new File("./src/r");
+		instTable = new File("./src/instTable");
+		history = new File("./src/history");
+	}
+	
+	void genRandom() throws NoSuchAlgorithmException
+	{
+		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
 	}
 	
 	void genPrime()	//Returns a 160 bit random prime number
