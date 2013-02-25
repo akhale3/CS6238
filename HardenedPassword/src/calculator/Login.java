@@ -71,6 +71,7 @@ public class Login
 		String choice;
 		userName = new String();
 		pwd = new String();
+		String filename = new String();
 		FileReader fr;
 		FileWriter fw;
 		BufferedReader reader = null;
@@ -122,7 +123,13 @@ public class Login
 				oos = new ObjectOutputStream(os);
 				oos.writeObject(f.instTab);
 				os.close();
-				//set history file
+				try
+				{
+					filename = userName; "./src/".concat(filename);
+					  FileWriter fstream = new FileWriter(filename);
+					  fstream.close();
+				}catch (Exception e){}
+				f.createHfile(QA, filename);	//setting up history file
 				//encrypt
 				f.test();
 			}

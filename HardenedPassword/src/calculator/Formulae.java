@@ -45,6 +45,7 @@ public class Formulae {
 	File randVal;
 	File instTable;
 	File history;
+	int Hfile[][]; int z=0;
 	
 	Formulae()
 	{
@@ -70,6 +71,10 @@ public class Formulae {
 		randVal = new File("./src/r");
 		instTable = new File("./src/instTable");
 		history = new File("./src/history");
+		Hfile = new int[10][m];
+		for(int i=0;i<10;i++)
+			for(int j=0;j<m;j++)
+			{Hfile[i][j] = 0;}
 	}
 	
 	void genRandom() throws NoSuchAlgorithmException
@@ -152,6 +157,32 @@ public class Formulae {
 			}
 	}
 	
+	void createHfile(String QA[][],String filename)
+	{
+		if(z<=4)
+		{
+		for(int i=0;i<m;i++)
+			{
+				Hfile[z][i] = Integer.parseInt(QA[i][1]);
+				z++;
+			}
+			try
+			{
+				FileWriter fstream = new FileWriter(filename);
+				BufferedWriter out = new BufferedWriter(fstream);
+				for(int i=0;i<m;i++)
+				{
+					out.write(Hfile[z][i]);
+				}
+				out.close();
+			}catch (Exception e){System.err.println("Error: " + e.getMessage());}
+		}
+		else if(z>4)
+		{
+			z=0;
+			createHfile(QA,filename);
+		}
+	}
 	//XY coordinates generation
 	void xyCalc(String s[][]) throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
 	, InvalidKeySpecException
