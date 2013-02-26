@@ -6,20 +6,19 @@ package calculator;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
 import java.util.Random;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
@@ -29,31 +28,32 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Formulae {
 
-	BigInteger q;		//Large Prime Number
-	BigInteger hpwd;	//Hardened Password
-	Random rand;		//Random Number
-	double mean[];		//Mean
-	double sd[];		//Standard Deviation
-	double t[];			//Threshold
-	double phi[];		//Distinguishing Feature
-	int b[];			//Feature Descriptor
-	int z;				//Size of History File
-	int m;				//Number of questions
-	BigInteger instTab[][];	//Instruction Table
+	BigInteger q;				//Large Prime Number
+	BigInteger hpwd;			//Hardened Password
+	Random rand;				//Random Number
+	double mean[];				//Mean
+	double sd[];				//Standard Deviation
+	double t[];					//Threshold
+	double phi[];				//Distinguishing Feature
+	int b[];					//Feature Descriptor
+	int z;						//Size of History File
+	int m;						//Number of questions
+	BigInteger instTab[][];		//Instruction Table
 	BigInteger alpha[];
 	BigInteger beta[];
 	BigInteger x[][], y[][];	//Result of polynomial evaluation
 	BigInteger X[], Y[];		//Store x and y values during login
-	BigInteger lam[];		//Langrange coefficient for interpolation
-	BigInteger hpwd1;	//Login generated hardened password
+	BigInteger lam[];			//Lagrange coefficient for interpolation
+	BigInteger hpwd1;			//Login generated hardened password
 	Mac g1, g2;
 	SecretKey r;
-	int a[];			//Random coefficients for calculating polynomial
+	int a[];					//Random coefficients for calculating polynomial
 	File randVal;
 	File prime;
 	File instTable;
-	File history;
-	BigInteger Hfile[][];
+	File history;				//Temporary history file
+	File history_enc;			//Encrypted history file
+	int Hfile[][];				//Store history file contents
 	
 	Formulae()
 	{
@@ -80,10 +80,11 @@ public class Formulae {
 		prime = new File("./src/prime");
 		instTable = new File("./src/instTable");
 		history = new File("./src/history");
-		Hfile = new BigInteger[10][m];
-		for(int i=0;i<10;i++)
+		history_enc = new File("./src/historyenc");
+		Hfile = new int[10][m];
+		for(int i = 0; i < 10; i++)
 			for(int j=0;j<m;j++)
-			{Hfile[i][j].valueOf(0);}
+				Hfile[i][j] = 0;
 	}
 	
 	void genRandom() throws NoSuchAlgorithmException
@@ -91,29 +92,18 @@ public class Formulae {
 		r = KeyGenerator.getInstance("HmacSHA1").generateKey();
 	}
 	
-	void genPrime()	//Returns a 160 bit random prime number
+	void genPrime()			//Returns a 160 bit random prime number
 	{
 		q = BigInteger.probablePrime(160, rand);
 	}
 	
-	void setHpwd()	//Sets hardened password during initialization
+	void setHpwd()			//Sets hardened password during initialization
 	{
 		hpwd = hpwd.add(q);
 	}
 	
-	void calcMeanSD()	//Calculates mean and standard deviation
-	{
-//		int i;
-		
-	}
-	
-	void isDistinguishing()	//Determines if the features are distinguishing or otherwise
-	{
-//		int k;
-	}
-	
-	void calcPolynomial() throws NoSuchAlgorithmException	//Calculate the value of y0 and y1
-, InvalidKeyException
+	void calcPolynomial()	//Calculate the value of y0 and y1
+			throws NoSuchAlgorithmException, InvalidKeyException
 	{
 		int i, j;
 		SecretKey rpwd;
@@ -141,12 +131,11 @@ public class Formulae {
 		}
 	}
 	
-	void calcAlphaBeta() 	//Calculates the value of Alpha and Beta
+	void calcAlphaBeta() //Calculates the value of Alpha and Beta
 	{
 		int i;
 		for(i = 0; i < m; i++)
 		{
-//			y[i][0] = y[i][1] = BigInteger.valueOf(0);
 			alpha[i] = y[i][0].add(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i).toByteArray())).mod(q));
 			beta[i] = y[i][1].add(new BigInteger(g2.doFinal(BigInteger.valueOf(2*i+1).toByteArray())).mod(q));
 		}
@@ -166,62 +155,86 @@ public class Formulae {
 			}
 	}
 	
-	void createHfile(String QA[][]) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException
+	void createHFile(String QA[][], BufferedWriter writer) throws IOException
 	{
-		BufferedWriter writer = new BufferedWriter(new FileWriter(history));
-		SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-		KeySpec spec = new PBEKeySpec(hpwd.toString().toCharArray());
-		SecretKey tmp = factory.generateSecret(spec);
-		SecretKey secret = new SecretKeySpec(tmp.getEncoded(), "AES");
-		/* Encrypt the message. */
-		Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-		cipher.init(Cipher.ENCRYPT_MODE, secret);
-		if(z<=4)
+		int i;
+		if (z < 5)	//Number of records to be maintained in the history file
 		{
-		for(int i=0;i<m;i++)
+			for(i = 0; i < m; i++)
 			{
-//				Hfile[z][i] = Integer.parseInt(QA[i][1]);
-				Hfile[z][i] = new BigInteger(cipher.doFinal(QA[i][1].getBytes()));
+				Hfile[z][i] = Integer.parseInt(QA[i][1]);
 				z++;
 			}
-			try
+			
+			for(i = 0; i < m; i++)
 			{
-				for(int i=0;i<m;i++)
-				{
-					writer.write(Hfile[z][i].toString());
-				}
-	
-				writer.close();
-			}catch (Exception e){System.err.println("Error: " + e.getMessage());}
-			
-			
-			
+				writer.write(Hfile[z][i]);
+				writer.newLine();
+			}
 		}
-		else if(z>4)
+		else
 		{
-			z=0;
-			createHfile(QA);
+			z = 0;
+			createHFile(QA, writer);
 		}
 	}
 	
-	void decrypt(BigInteger hpwd) throws Exception
+	void encDec(InputStream is, OutputStream os, int mode) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, IOException
 	{
-	FileWriter fstream = new FileWriter(history);
-	SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-	KeySpec spec = new PBEKeySpec(hpwd.toString().toCharArray());
-	SecretKey tmp = factory.generateSecret(spec);
-	SecretKey secret = new SecretKeySpec(tmp.getEncoded(), "AES");
-	/* Decrypt the message. */
-	Cipher cipher = Cipher.getInstance("AES/EBC/PKCS5Padding");
-	cipher.init(Cipher.DECRYPT_MODE, secret);
-	String plaintext = new String(cipher.doFinal(fstream.toString().getBytes()), "UTF-8");
-	System.out.println(plaintext);
-	fstream.close();
+		int i;
+		byte temp[] = new byte[(int) history.length()];
+		MessageDigest digester = MessageDigest.getInstance("MD5");
+		char password[] = hpwd1.toString().toCharArray();
+		for (i = 0; i < password.length; i++)
+			digester.update((byte) password[i]);
+		byte[] passwordData = digester.digest();
+		Key sk = new SecretKeySpec(passwordData, "AES");
+		Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+		
+		if(mode == Cipher.ENCRYPT_MODE)
+		{
+			cipher.init(Cipher.ENCRYPT_MODE, sk);
+			CipherInputStream cis = new CipherInputStream(is, cipher);
+			while(cis.read(temp) != -1)
+				os.write(temp, 0, cis.read(temp));
+			os.flush();
+			os.close();
+			cis.close();
+		}
+		
+		if(mode == Cipher.DECRYPT_MODE)
+		{
+			cipher.init(Cipher.DECRYPT_MODE, sk);
+			CipherOutputStream cos = new CipherOutputStream(os, cipher);
+			while(is.read(temp) != -1)
+				os.write(temp, 0, is.read(temp));
+			cos.flush();
+			cos.close();
+			is.close();
+		}
 	}
 	
-	//XY coordinates generation
-	void xyCalc(String s[][]) throws NoSuchAlgorithmException, InvalidKeyException	//Calculates the value of Alpha and Beta
-	, InvalidKeySpecException
+	void encrypt() throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException
+	{
+		FileInputStream fis = new FileInputStream(history);
+		if(!history_enc.exists())
+			history_enc.createNewFile();
+		FileOutputStream fos = new FileOutputStream(history_enc);
+		encDec(fis, fos, Cipher.ENCRYPT_MODE);
+		history.deleteOnExit();
+	}
+	
+	void decrypt() throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException
+	{
+		FileInputStream fis = new FileInputStream(history_enc);
+		if(!history.exists())
+			history.createNewFile();
+		FileOutputStream fos = new FileOutputStream(history);
+		encDec(fis, fos, Cipher.DECRYPT_MODE);
+	}
+	
+	void xyCalc(String s[][])	//XY coordinates generation
+			throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException
 	{
 		int i;
 		SecretKey rpwd1;
@@ -248,8 +261,7 @@ public class Formulae {
 		}
 	}
 
-	//Generating the password at the decryption side
-	void generateHPWD()
+	void generateHPWD()		//Generating the password at the decryption side
 	{
 		int i, j;
 		for(i = 0; i < m; i++)
@@ -268,6 +280,7 @@ public class Formulae {
 		}
 	}
 	
+/*	Debug Routine - Ignore
 	void test() throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException
 	{
 		int i, j;
@@ -293,5 +306,5 @@ public class Formulae {
 		//generateHPWD();
 		System.out.println("hpwd1 = " + hpwd1);
 	}
-	
+*/
 }
